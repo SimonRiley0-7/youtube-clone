@@ -1,14 +1,46 @@
-// index.js
+// index.js - YouTube Clone Backend
+// AWS Workshop Pattern Implementation
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 const db = require('./db');
 const s3 = require('./s3');
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+// Security middleware - Workshop best practices
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
+
+// Compression middleware
+app.use(compression());
+
+// Logging middleware
+app.use(morgan('combined'));
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- API Endpoints ---
 app.get('/videos', async (req, res) => {
@@ -79,6 +111,80 @@ app.post('/videos', async (req, res) => {
   }
 });
 
+// Health check endpoint for ALB - Workshop pattern
+app.get('/health', async (req, res) => {
+  try {
+    // Check database connectivity
+    await db.query('SELECT 1');
+    
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      service: 'youtube-clone-backend',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      database: 'connected'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'youtube-clone-backend',
+      error: error.message,
+      database: 'disconnected'
+    });
+  }
+});
+
+// Readiness check endpoint
+app.get('/ready', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.status(200).json({ status: 'ready' });
+  } catch (error) {
+    res.status(503).json({ status: 'not ready', error: error.message });
+  }
+});
+
+// Liveness check endpoint
+app.get('/live', (req, res) => {
+  res.status(200).json({ status: 'alive' });
+});
+
+// Error handling middleware - Workshop pattern
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'The requested resource was not found',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🚀 YouTube Clone Backend Server is running on port ${port}`);
+  console.log(`📊 Health check available at: http://localhost:${port}/health`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
