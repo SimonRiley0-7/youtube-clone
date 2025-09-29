@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Test - YouTube Clone</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f0f0f; color: white; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; background: #212121; border-radius: 8px; }
+        button { padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #d73502; }
+        .log { background: #000; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+        input[type="file"] { margin: 10px 0; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Upload Troubleshooting Tool</h1>
+        
+        <div class="test-section">
+            <h2>Step 1: Test Backend Connection</h2>
+            <button onclick="testBackend()">Test Backend API</button>
+            <div id="backendResult" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Test Upload URL Generation</h2>
+            <button onclick="testUploadUrl()">Generate Upload URL</button>
+            <div id="uploadUrlResult" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Test File Upload</h2>
+            <input type="file" id="testFile" accept="video/mp4">
+            <button onclick="testFileUpload()">Test Upload</button>
+            <div id="uploadResult" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Console Logs</h2>
+            <div id="consoleLogs" class="log">Console logs will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        const logDiv = document.getElementById('consoleLogs');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            console.log(message);
+        }
+        
+        // Override console methods to capture logs
+        const originalError = console.error;
+        const originalLog = console.log;
+        console.error = function(...args) {
+            log('ERROR: ' + args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+        };
+        
+        async function testBackend() {
+            const resultDiv = document.getElementById('backendResult');
+            resultDiv.textContent = 'Testing backend connection...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/videos`);
+                if (response.ok) {
+                    const videos = await response.json();
+                    resultDiv.innerHTML = `<span class="success">✅ Backend connected successfully!</span>\nFound ${videos.length} videos in database.`;
+                    log('Backend connection successful', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Backend connection failed:</span>\n${error.message}`;
+                log('Backend connection failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testUploadUrl() {
+            const resultDiv = document.getElementById('uploadUrlResult');
+            resultDiv.textContent = 'Generating upload URL...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/generate-upload-url`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<span class="success">✅ Upload URL generated successfully!</span>\nKey: ${data.key}\nBucket URL: ${data.uploadUrl.split('?')[0]}`;
+                    log('Upload URL generated successfully', 'success');
+                    window.lastUploadConfig = data; // Store for next test
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Upload URL generation failed:</span>\n${error.message}`;
+                log('Upload URL generation failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testFileUpload() {
+            const resultDiv = document.getElementById('uploadResult');
+            const fileInput = document.getElementById('testFile');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = `<span class="warning">⚠️ Please select a video file first</span>`;
+                return;
+            }
+            
+            if (!window.lastUploadConfig) {
+                resultDiv.innerHTML = `<span class="warning">⚠️ Please generate upload URL first</span>`;
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.textContent = 'Uploading file to S3...';
+            log(`Starting upload of ${file.name} (${file.size} bytes)`);
+            
+            try {
+                // Test the actual S3 upload
+                const uploadResponse = await fetch(window.lastUploadConfig.uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'video/mp4'
+                    },
+                    body: file
+                });
+                
+                if (uploadResponse.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ File uploaded to S3 successfully!</span>\nStatus: ${uploadResponse.status}`;
+                    log('S3 upload successful', 'success');
+                    
+                    // Test saving metadata
+                    log('Saving metadata to database...');
+                    const metadataResponse = await fetch(`${API_BASE_URL}/videos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: `Test Upload - ${file.name}`,
+                            description: 'Test upload from troubleshooting tool',
+                            s3_key: window.lastUploadConfig.key
+                        })
+                    });
+                    
+                    if (metadataResponse.ok) {
+                        const savedVideo = await metadataResponse.json();
+                        resultDiv.innerHTML += `\n<span class="success">✅ Metadata saved successfully!</span>\nVideo ID: ${savedVideo.id}`;
+                        log('Metadata saved successfully', 'success');
+                    } else {
+                        throw new Error(`Metadata save failed: ${metadataResponse.status}`);
+                    }
+                    
+                } else {
+                    const errorText = await uploadResponse.text();
+                    throw new Error(`S3 upload failed: ${uploadResponse.status} - ${errorText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Upload failed:</span>\n${error.message}`;
+                log('Upload failed: ' + error.message, 'error');
+                
+                // Provide specific troubleshooting tips
+                if (error.message.includes('CORS')) {
+                    resultDiv.innerHTML += `\n<span class="warning">💡 This looks like a CORS issue. Check your S3 bucket CORS configuration.</span>`;
+                } else if (error.message.includes('403')) {
+                    resultDiv.innerHTML += `\n<span class="warning">💡 This looks like a permissions issue. Check your AWS credentials and S3 bucket permissions.</span>`;
+                } else if (error.message.includes('NetworkError')) {
+                    resultDiv.innerHTML += `\n<span class="warning">💡 This looks like a network issue. Check if your S3 bucket exists and is accessible.</span>`;
+                }
+            }
+        }
+        
+        // Test backend connection on page load
+        window.onload = function() {
+            log('Upload troubleshooting tool loaded');
+            testBackend();
+        };
+    </script>
+</body>
+</html>

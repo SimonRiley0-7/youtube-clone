@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player - YouTube Clone</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/video.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="logo" onclick="goHome()">
+                <i class="fab fa-youtube"></i>
+                <span>YouTube</span>
+            </div>
+        </div>
+        
+        <div class="header-center">
+            <div class="search-container">
+                <input type="text" placeholder="Search" class="search-input" id="searchInput">
+                <button class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <button class="upload-btn">
+                <i class="fas fa-plus"></i>
+                <span>Upload</span>
+                </button>
+            <button class="profile-btn">
+                <i class="fas fa-user-circle"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="video-container">
+        <div class="video-main">
+            <div class="video-player">
+                <div class="video-wrapper">
+                    <div class="video-placeholder" id="videoPlayer">
+                        <div class="video-controls" id="videoControls">
+                            <div class="progress-bar" id="progressBar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="controls-bottom">
+                                <div class="controls-left">
+                                    <button class="control-btn play-pause" id="playPauseBtn">
+                                        <i class="fas fa-play" id="playPauseIcon"></i>
+                                    </button>
+                                    <button class="control-btn" id="nextBtn">
+                                        <i class="fas fa-step-forward"></i>
+                                    </button>
+                                    <div class="volume-control">
+                                        <button class="control-btn" id="volumeBtn">
+                                            <i class="fas fa-volume-up" id="volumeIcon"></i>
+                                        </button>
+                                        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+                                    </div>
+                                    <div class="time-display">
+                                        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                                    </div>
+                                </div>
+                                <div class="controls-right">
+                                    <button class="control-btn settings-btn" id="settingsBtn">
+                                        <i class="fas fa-cog"></i>
+                                        <div class="settings-menu">
+                                            <div class="settings-item">Speed</div>
+                                            <div class="settings-item">Quality</div>
+                                        </div>
+                                    </button>
+                                    <button class="control-btn" id="pipBtn">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </button>
+                                    <button class="control-btn fullscreen-btn" id="fullscreenBtn">
+                                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="video-info-section">
+                <h1 class="video-title" id="videoTitle">Loading...</h1>
+                <div class="video-meta">
+                    <div class="video-stats">
+                        <span id="videoViews">0 views</span> • 
+                        <span id="videoDate">Loading...</span>
+                    </div>
+                    <div class="video-actions">
+                        <button class="action-btn" onclick="likeVideo()">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span id="likeCount">0</span>
+                        </button>
+                        <button class="action-btn" onclick="dislikeVideo()">
+                            <i class="fas fa-thumbs-down"></i>
+                            <span id="dislikeCount">0</span>
+                        </button>
+                        <button class="action-btn" onclick="shareVideo()">
+                            <i class="fas fa-share"></i>
+                            Share
+                        </button>
+                        <button class="action-btn" onclick="saveVideo()">
+                            <i class="fas fa-bookmark"></i>
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="channel-info">
+                <div class="channel-avatar">
+                    <img id="channelAvatar" src="https://yt3.ggpht.com/a/default-user=s68-c-k-c0x00ffffff-no-rj" alt="Channel">
+                </div>
+                <div class="channel-details">
+                    <h3 class="channel-name" id="channelName">Loading...</h3>
+                    <p class="channel-subscribers" id="channelSubscribers">0 subscribers</p>
+                    <div class="video-description" id="videoDescription">
+                        <p>Loading description...</p>
+                    </div>
+                </div>
+                <button class="subscribe-btn" id="subscribeBtn" onclick="toggleSubscribe()">
+                    <i class="fas fa-bell"></i>
+                    Subscribe
+                </button>
+            </div>
+
+            <div class="comments-section">
+                <div class="comments-header">
+                    <h3><span id="commentCount">0</span> Comments</h3>
+                    <div class="sort-comments">
+                        <button class="sort-btn active">Top comments</button>
+                        <button class="sort-btn">Newest first</button>
+                    </div>
+                </div>
+
+                <div class="add-comment">
+                    <div class="comment-avatar">
+                        <img src="https://yt3.ggpht.com/a/default-user=s68-c-k-c0x00ffffff-no-rj" alt="Your Avatar">
+                    </div>
+                    <div class="comment-input-container">
+                        <textarea placeholder="Add a comment..." id="commentInput" rows="1"></textarea>
+                        <div class="comment-actions" style="display: none;">
+                            <button class="cancel-btn" onclick="cancelComment()">Cancel</button>
+                            <button class="post-btn" onclick="postComment()">Comment</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comments-list" id="commentsList">
+                    <div class="comment">
+                        <div class="comment-avatar">
+                            <img src="https://yt3.ggpht.com/a/default-user=s68-c-k-c0x00ffffff-no-rj" alt="User">
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-author">TechLover123</span>
+                                <span class="comment-time">2 hours ago</span>
+                            </div>
+                            <div class="comment-text">
+                                This video is amazing! Really helped me understand the concepts better. Thank you for sharing!
+                            </div>
+                            <div class="comment-actions-row">
+                                <button class="comment-action" onclick="likeComment(this)">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span>12</span>
+                                </button>
+                                <button class="comment-action" onclick="dislikeComment(this)">
+                                    <i class="fas fa-thumbs-down"></i>
+                                </button>
+                                <button class="comment-action" onclick="replyToComment(this)">
+                                    Reply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comment">
+                        <div class="comment-avatar">
+                            <img src="https://yt3.ggpht.com/a/default-user=s68-c-k-c0x00ffffff-no-rj" alt="User">
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-author">CodeNewbie</span>
+                                <span class="comment-time">5 hours ago</span>
+                            </div>
+                            <div class="comment-text">
+                                Can you make a tutorial on advanced topics too? 🚀
+                            </div>
+                            <div class="comment-actions-row">
+                                <button class="comment-action" onclick="likeComment(this)">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span>8</span>
+                                </button>
+                                <button class="comment-action" onclick="dislikeComment(this)">
+                                    <i class="fas fa-thumbs-down"></i>
+                                </button>
+                                <button class="comment-action" onclick="replyToComment(this)">
+                                    Reply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="video-sidebar">
+            <div class="sidebar-section">
+                <h3>Up next</h3>
+                <div class="recommended-videos" id="recommendedVideos">
+                    <!-- Real videos will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/video.js"></script>
+</body>
+</html>
